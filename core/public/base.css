@@ -1,0 +1,97 @@
+/* Общая основа оформления. У каждого трекера свои цвета: он переопределяет --accent и другие переменные. */
+@font-face {
+  font-family: Manrope; font-style: normal; font-weight: 200 800; font-display: swap;
+  src: url(/shared/fonts/manrope-cyrillic-wght-normal.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: Manrope; font-style: normal; font-weight: 200 800; font-display: swap;
+  src: url(/shared/fonts/manrope-latin-wght-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #f4f3ee; --surface: #ffffff; --surface-2: #ecebe4; --line: #dedcd2;
+  --ink: #1b2320; --muted: #66706b; --accent: #0e7c66; --accent-ink: #ffffff; --accent-soft: #d9efe9;
+  --danger: #c23a20; --danger-soft: #fae3dc; --warn: #a06c00; --warn-soft: #f8ecc9;
+  --radius: 10px; --shadow: 0 1px 2px rgb(20 30 25 / 8%), 0 8px 24px rgb(20 30 25 / 7%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111614; --surface: #1a211e; --surface-2: #232c28; --line: #303a35;
+    --ink: #e8ece9; --muted: #98a39d; --accent: #35bfa0; --accent-ink: #08201a; --accent-soft: #173a31;
+    --danger: #f0826a; --danger-soft: #41211a; --warn: #e2b34a; --warn-soft: #3b2f12;
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 500 15px/1.5 Manrope, system-ui, sans-serif; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 26px; line-height: 1.2; font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 17px; line-height: 1.3; font-weight: 800; }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font-weight: 700; cursor: pointer;
+  text-decoration: none; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { filter: brightness(1.07); border-color: var(--accent); }
+.btn-danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--ink); border-color: transparent; background: var(--surface-2); }
+
+input:not([type=checkbox]), select, textarea {
+  width: 100%; min-height: 42px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+textarea { resize: vertical; min-height: 92px; }
+input::placeholder, textarea::placeholder { color: var(--muted); }
+
+.field { display: grid; gap: 5px; }
+.field-label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.field-hint { font-size: 13px; color: var(--muted); }
+
+.stack { display: grid; gap: 14px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row.end { justify-content: flex-end; }
+.row.between { justify-content: space-between; }
+.muted { color: var(--muted); }
+
+.avatar {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%;
+  font-size: 11px; font-weight: 800; background: var(--surface-2); color: var(--ink);
+}
+.avatar-0 { background: #cfe7df; color: #0d4a3d; } .avatar-1 { background: #f6dcc9; color: #6b3210; }
+.avatar-2 { background: #dad9f3; color: #322f7a; } .avatar-3 { background: #f3e3a8; color: #5c4600; }
+.avatar-4 { background: #f2d3dc; color: #74203c; }
+
+.dialog {
+  width: min(520px, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px); padding: 22px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+}
+.dialog:focus, .dialog:focus-visible { outline: none; }
+.dialog::backdrop { background: rgb(10 15 13 / 45%); }
+.dialog-small { width: min(400px, calc(100vw - 24px)); }
+.confirm-text { font-size: 16px; }
+
+#toasts {
+  position: fixed; z-index: 1000; left: 50%; bottom: 84px; transform: translateX(-50%); display: grid; gap: 8px;
+  width: min(420px, calc(100vw - 24px)); pointer-events: none;
+}
+.toast { padding: 11px 14px; border-radius: var(--radius); background: var(--ink); color: var(--bg); box-shadow: var(--shadow); font-weight: 600; }
+.toast-error { background: var(--danger); color: #fff; }
+.toast-ok { background: var(--accent); color: var(--accent-ink); }
+
+.empty { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 34px 18px; color: var(--muted); }
+.empty strong { color: var(--ink); font-size: 16px; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

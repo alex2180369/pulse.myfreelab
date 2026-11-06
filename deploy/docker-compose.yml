@@ -1,0 +1,38 @@
+services:
+  zadachi:
+    build:
+      context: ..
+      args: { CASE: 01_zadachi }
+    container_name: tracker-zadachi
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEMO: "1"
+      PUBLIC_URL: https://pulse.myfreelab.ru
+      APP_TZ: Europe/Moscow
+      PORT: "8801"
+      DB_FILE: /data/tasks.sqlite
+      TRUST_PROXY: "1"
+      COOKIE_SECURE: "1"
+    ports:
+      - "127.0.0.1:8801:8801"
+    volumes:
+      - zadachi-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8801/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+
+volumes:
+  zadachi-data:
