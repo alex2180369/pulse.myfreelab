@@ -407,7 +407,7 @@ function createApp({ db, publicDir, sharedDir, demo = false, trustProxy = false,
     else serveStatic(req, res, url);
   });
 
-  return { route, server };
+  return { route, server, setSession };
 }
 
 function send(res, status, body, headers = {}) {
@@ -440,5 +440,5 @@ function createInvite(db, { name, role, createdBy, days = 7 }) {
 
 module.exports = {
   HttpError, forbid, notFound, invalid, openDb, tx, now, randomToken, hashPassword, verifyPassword, createSession,
-  text, oneOf, intId, isoDate, validLogin, validPassword, createApp, createUser, createInvite,
+  text, oneOf, intId, isoDate, validLogin, validPassword, createApp, createUser, createInvite, Limiter,
 };

@@ -34,5 +34,39 @@ services:
       driver: json-file
       options: { max-size: "5m", max-file: "2" }
 
+  privychki:
+    build:
+      context: ..
+      args: { CASE: 02_privychki }
+    container_name: tracker-privychki
+    restart: unless-stopped
+    environment:
+      SANDBOX: "1"
+      PORT: "8802"
+      DB_FILE: /data/habits.sqlite
+      TRUST_PROXY: "1"
+      COOKIE_SECURE: "1"
+      PUSH_SUBJECT: https://seriya.myfreelab.ru
+    ports:
+      - "127.0.0.1:8802:8802"
+    volumes:
+      - privychki-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8802/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+
 volumes:
   zadachi-data:
+  privychki-data:

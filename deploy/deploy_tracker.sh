@@ -22,11 +22,13 @@ fi
 
 echo "== Собираю контейнер, это пара минут"
 docker compose up -d --build
-for i in $(seq 1 30); do
-  curl -sf -m 3 http://127.0.0.1:8801/health >/dev/null && break
-  sleep 2
+for port in 8801 8802; do
+  for i in $(seq 1 30); do
+    curl -sf -m 3 "http://127.0.0.1:$port/health" >/dev/null && break
+    sleep 2
+  done
+  curl -sS -m 5 "http://127.0.0.1:$port/health"; echo
 done
-curl -sS -m 5 http://127.0.0.1:8801/health; echo
 
 site() {
   local HOST=$1 PORT=$2 CONF=/etc/nginx/sites-available/$1
@@ -59,6 +61,7 @@ NGINX
 }
 
 site pulse.myfreelab.ru 8801
+site seriya.myfreelab.ru 8802
 
 docker compose ps
 echo "Готово"
