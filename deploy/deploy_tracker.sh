@@ -22,7 +22,7 @@ fi
 
 echo "== Собираю контейнер, это пара минут"
 docker compose up -d --build
-for port in 8801 8802; do
+for port in 8801 8802 8803; do
   for i in $(seq 1 30); do
     curl -sf -m 3 "http://127.0.0.1:$port/health" >/dev/null && break
     sleep 2
@@ -31,13 +31,13 @@ for port in 8801 8802; do
 done
 
 site() {
-  local HOST=$1 PORT=$2 CONF=/etc/nginx/sites-available/$1
+  local HOST=$1 PORT=$2 MAX=${3:-1m} CONF=/etc/nginx/sites-available/$1
   if [ ! -e "$CONF" ]; then
     cat > "$CONF" <<NGINX
 server {
     listen 80;
     server_name $HOST;
-    client_max_body_size 1m;
+    client_max_body_size $MAX;
     location / {
         proxy_pass http://127.0.0.1:$PORT;
         proxy_set_header Host \$host;
@@ -62,6 +62,7 @@ NGINX
 
 site pulse.myfreelab.ru 8801
 site seriya.myfreelab.ru 8802
+site prorab.myfreelab.ru 8803 4m
 
 docker compose ps
 echo "Готово"

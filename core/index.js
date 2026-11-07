@@ -183,16 +183,21 @@ function parseCookies(header) {
   return out;
 }
 
-function readBody(req) {
+function readBody(req, limit = MAX_BODY) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
     req.on('data', c => {
       size += c.length;
-      if (size > MAX_BODY) { reject(new HttpError(413, 'too_large', 'Слишком большой запрос')); req.destroy(); return; }
+      if (size > limit) {
+        reject(new HttpError(413, 'too_large', 'Слишком большой запрос'));
+        req.removeAllListeners('data');
+        req.resume();
+        return;
+      }
       chunks.push(c);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
@@ -210,7 +215,7 @@ function createApp({ db, publicDir, sharedDir, demo = false, trustProxy = false,
   const inviteLimit = new Limiter(20, 15 * 60e3);
 
   const route = (method, pattern, handler, opts = {}) => {
-    routes.push({ method, ...compile(pattern), handler, public: !!opts.public });
+    routes.push({ method, ...compile(pattern), handler, public: !!opts.public, upload: opts.upload || null });
   };
 
   const clientIp = req => (trustProxy && req.headers['x-real-ip']) || req.socket.remoteAddress || '';
@@ -333,9 +338,15 @@ function createApp({ db, publicDir, sharedDir, demo = false, trustProxy = false,
       if (!r.public && !ctx.user) throw new HttpError(401, 'unauthorized', 'Войдите в систему');
 
       if (req.method !== 'GET') {
-        // Защита от подделки запросов с чужих сайтов: только JSON и только со своего адреса.
+        // Защита от подделки запросов с чужих сайтов: только JSON (или разрешённый файл) и только со своего адреса.
         const type = String(req.headers['content-type'] || '').split(';')[0].trim();
-        if (type !== 'application/json') throw new HttpError(415, 'bad_type', 'Нужен JSON');
+        if (r.upload) {
+          if (!r.upload.types.includes(type)) throw new HttpError(415, 'bad_type', 'Этот формат не поддерживается');
+          const declared = Number(req.headers['content-length']);
+          if (declared > r.upload.maxBytes) throw new HttpError(413, 'too_large', 'Файл слишком большой');
+        } else if (type !== 'application/json') {
+          throw new HttpError(415, 'bad_type', 'Нужен JSON');
+        }
         const origin = req.headers.origin;
         if (origin && !bearer) {
           const host = (trustProxy && req.headers['x-forwarded-host']) || req.headers.host;
@@ -343,13 +354,29 @@ function createApp({ db, publicDir, sharedDir, demo = false, trustProxy = false,
           try { originHost = new URL(origin).host; } catch {}
           if (originHost !== host) forbid('Запрос с чужого сайта');
         }
-        const raw = await readBody(req);
-        if (raw) {
-          try { ctx.body = JSON.parse(raw); } catch { invalid('Некорректный JSON'); }
-          if (!ctx.body || typeof ctx.body !== 'object' || Array.isArray(ctx.body)) invalid('Некорректный JSON');
+        if (r.upload) {
+          ctx.file = await readBody(req, r.upload.maxBytes);
+          ctx.fileType = type;
+        } else {
+          const raw = (await readBody(req)).toString('utf8');
+          if (raw) {
+            try { ctx.body = JSON.parse(raw); } catch { invalid('Некорректный JSON'); }
+            if (!ctx.body || typeof ctx.body !== 'object' || Array.isArray(ctx.body)) invalid('Некорректный JSON');
+          }
         }
       }
       const result = await r.handler(ctx);
+      if (ctx.sendFile) {
+        const data = await fs.promises.readFile(ctx.sendFile.path).catch(() => null);
+        if (!data) notFound('Файл не найден');
+        // Файл нельзя выполнить как страницу, даже если под видом картинки загрузили что-то другое.
+        res.writeHead(200, {
+          'Content-Type': ctx.sendFile.type, 'Content-Length': data.length, 'Cache-Control': 'private, max-age=86400',
+          'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox",
+        });
+        res.end(data);
+        return;
+      }
       send(res, ctx.status, result ?? { ok: true }, ctx.headers);
     } catch (e) {
       if (e instanceof HttpError) {

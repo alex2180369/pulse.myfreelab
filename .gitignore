@@ -3,3 +3,4 @@ data/
 .env
 cases/*/info/
 node_modules/
+cases/*/raw_photos/

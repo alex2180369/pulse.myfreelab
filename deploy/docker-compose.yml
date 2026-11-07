@@ -67,6 +67,40 @@ services:
       driver: json-file
       options: { max-size: "5m", max-file: "2" }
 
+  stroyka:
+    build:
+      context: ..
+      args: { CASE: 03_stroyka }
+    container_name: tracker-stroyka
+    restart: unless-stopped
+    environment:
+      DEMO: "1"
+      PORT: "8803"
+      DB_FILE: /data/prorab.sqlite
+      TRUST_PROXY: "1"
+      COOKIE_SECURE: "1"
+      APP_TZ: Europe/Moscow
+    ports:
+      - "127.0.0.1:8803:8803"
+    volumes:
+      - stroyka-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8803/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+
 volumes:
   zadachi-data:
   privychki-data:
+  stroyka-data:
