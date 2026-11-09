@@ -41,3 +41,30 @@ test('Прораб: сброс возвращает демо и удаляет �
   for (const { file } of db.prepare('SELECT file FROM photos').all()) assert.ok(seedFiles.has(file), `файл демо есть: ${file}`);
   assert.ok(db.prepare("SELECT 1 FROM reports WHERE day = '2026-11-08'").get(), 'даты пересчитаны от нового дня');
 });
+
+test('Тонус: сброс возвращает демо и удаляет файлы посетителей', async () => {
+  const { seed, resetDemo } = require('../cases/04_zdorovie/app/seed');
+  const db = openDb(':memory:', require('../cases/04_zdorovie/app/schema'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tonus-reset-'));
+  await seed(db, '2026-11-09');
+  const tables = ['users', 'profiles', 'measurements', 'goals', 'labs', 'lab_values', 'lab_files', 'meds', 'requests', 'access', 'slots', 'bookings', 'materials', 'notifications'];
+  const counts = () => tables.map(t => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n);
+  const start = counts();
+  assert.ok(start.every(n => n > 0), 'демо не пустое');
+  const anna = db.prepare("SELECT id FROM users WHERE login = 'anna'").get().id;
+  db.prepare("INSERT INTO measurements (user_id, day, metric, v1, updated_at) VALUES (?, '2026-11-09', 'pulse', 999, 'x')").run(anna);
+  db.prepare("INSERT INTO push_subs (endpoint, user_id, p256dh, auth, created_at) VALUES ('https://fcm.googleapis.com/x', ?, 'k', 'a', 'x')").run(anna);
+  fs.writeFileSync(path.join(dir, 'upload'), 'x');
+  await resetDemo(db, '2026-11-10', dir);
+  // Число записей зависит от дня недели, поэтому сравниваем со свежим демо того же дня.
+  const fresh = openDb(':memory:', require('../cases/04_zdorovie/app/schema'));
+  await seed(fresh, '2026-11-10');
+  assert.deepEqual(counts(), tables.map(t => fresh.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n));
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM measurements WHERE v1 = 999').get().n, 0);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM push_subs').get().n, 0, 'подписки посетителей удалены');
+  assert.equal(fs.existsSync(dir), false, 'загруженные файлы удалены');
+  const seedFiles = new Set(fs.readdirSync(path.join(__dirname, '../cases/04_zdorovie/app/seed_files')));
+  for (const { file } of db.prepare('SELECT file FROM lab_files').all()) assert.ok(seedFiles.has(file), `файл демо есть: ${file}`);
+  assert.ok(db.prepare("SELECT 1 FROM measurements WHERE day = '2026-11-10'").get(), 'даты пересчитаны от нового дня');
+  assert.equal(db.prepare("SELECT login FROM users WHERE role = 'client' ORDER BY id LIMIT 1").get().login, 'anna', 'демо-вход ведёт к Анне');
+});

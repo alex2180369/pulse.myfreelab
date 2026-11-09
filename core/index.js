@@ -370,9 +370,13 @@ function createApp({ db, publicDir, sharedDir, demo = false, trustProxy = false,
         const data = await fs.promises.readFile(ctx.sendFile.path).catch(() => null);
         if (!data) notFound('Файл не найден');
         // Файл нельзя выполнить как страницу, даже если под видом картинки загрузили что-то другое.
+        // Документы, которые браузер не показывает как картинку, отдаются на скачивание.
+        const disposition = ctx.sendFile.download
+          ? `attachment; filename="file"; filename*=UTF-8''${encodeURIComponent(ctx.sendFile.download)}` : null;
         res.writeHead(200, {
           'Content-Type': ctx.sendFile.type, 'Content-Length': data.length, 'Cache-Control': 'private, max-age=86400',
           'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox",
+          ...(disposition ? { 'Content-Disposition': disposition } : {}),
         });
         res.end(data);
         return;
