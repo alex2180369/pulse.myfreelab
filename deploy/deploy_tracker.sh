@@ -22,7 +22,7 @@ fi
 
 echo "== Собираю контейнер, это пара минут"
 docker compose up -d --build
-for port in 8801 8802 8803 8804; do
+for port in 8801 8802 8803 8804 8805; do
   for i in $(seq 1 30); do
     curl -sf -m 3 "http://127.0.0.1:$port/health" >/dev/null && break
     sleep 2
@@ -64,6 +64,7 @@ site pulse.myfreelab.ru 8801
 site seriya.myfreelab.ru 8802
 site prorab.myfreelab.ru 8803 4m
 site tonus.myfreelab.ru 8804 6m
+site zachet.myfreelab.ru 8805 11m
 
 docker compose ps
 echo "Готово"

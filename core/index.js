@@ -372,10 +372,14 @@ function createApp({ db, publicDir, sharedDir, demo = false, trustProxy = false,
         // Файл нельзя выполнить как страницу, даже если под видом картинки загрузили что-то другое.
         // Документы, которые браузер не показывает как картинку, отдаются на скачивание.
         const disposition = ctx.sendFile.download
-          ? `attachment; filename="file"; filename*=UTF-8''${encodeURIComponent(ctx.sendFile.download)}` : null;
+          ? `attachment; filename="file"; filename*=UTF-8''${encodeURIComponent(ctx.sendFile.download)}`
+          : ctx.sendFile.viewer ? `inline; filename="file"; filename*=UTF-8''${encodeURIComponent(ctx.sendFile.viewer)}` : null;
+        // viewer: PDF от доверенного автора открывается во встроенном просмотрщике браузера,
+        // а ему мешает sandbox. Остальные файлы отдаются в песочнице.
         res.writeHead(200, {
           'Content-Type': ctx.sendFile.type, 'Content-Length': data.length, 'Cache-Control': 'private, max-age=86400',
-          'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox",
+          'X-Content-Type-Options': 'nosniff',
+          ...(ctx.sendFile.viewer ? {} : { 'Content-Security-Policy': "default-src 'none'; sandbox" }),
           ...(disposition ? { 'Content-Disposition': disposition } : {}),
         });
         res.end(data);

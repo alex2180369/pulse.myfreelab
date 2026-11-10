@@ -1,0 +1,40 @@
+// Первый запуск «Зачёта»: снимки экранов каждой роли и ошибки из консоли, без исправлений.
+// electron --ozone-platform=headless --ozone-override-screen-size=1600,1000 --no-sandbox tools/first_run_zachet.js <url> <out_dir>
+const { app, BrowserWindow } = require('electron');
+const fs = require('fs'), path = require('path');
+const [url, outDir] = process.argv.slice(-2);
+fs.mkdirSync(outDir, { recursive: true });
+app.setPath('userData', '/tmp/tr_first_z_' + process.pid);
+app.disableHardwareAcceleration();
+const wait = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ show: true, width: 1280, height: 900 });
+  const wc = win.webContents;
+  wc.on('console-message', e => console.log('[console]', e.level, e.message, e.sourceId?.split('/').pop(), e.lineNumber));
+  const js = c => wc.executeJavaScript(c);
+  const shot = async n => { await wait(500); fs.writeFileSync(path.join(outDir, n + '.png'), (await wc.capturePage()).toPNG()); console.log('shot', n); };
+  const text = async () => (await js('document.body.innerText')).slice(0, 300).replace(/\n/g, ' | ');
+  await win.loadURL(url); await wait(1500);
+  await shot('first_01_landing');
+  console.log('body:', await text());
+  await js(`document.querySelector('[data-role=tutor]')?.click()`); await wait(1500);
+  await shot('first_02_journal');
+  console.log('body:', await text());
+  await js(`location.hash='/edit/new'`); await wait(1200);
+  await shot('first_03_editor');
+  await js(`location.hash='/profile'`); await wait(800);
+  await js(`document.querySelector('#logout')?.click()`); await wait(1200);
+  await js(`document.querySelector('[data-role=student]')?.click()`); await wait(1500);
+  await shot('first_04_student_today');
+  await js(`location.hash='/tasks'`); await wait(1000);
+  await js(`document.querySelector('#tasks-todo [data-task]')?.click()`); await wait(1200);
+  await shot('first_05_task');
+  wc.debugger.attach('1.3');
+  await wc.debugger.sendCommand('Emulation.setDeviceMetricsOverride', { width: 360, height: 760, deviceScaleFactor: 2, mobile: true });
+  await js(`location.hash='/today'`); await js('location.reload()'); await wait(1600);
+  await shot('first_06_phone_today');
+  await js(`location.hash='/progress'`); await wait(1200);
+  await shot('first_07_phone_progress');
+  console.log('overflow:', await js('document.documentElement.scrollWidth'), '>', await js('window.innerWidth'));
+  app.quit();
+}).catch(e => { console.error(e); app.exit(1); });

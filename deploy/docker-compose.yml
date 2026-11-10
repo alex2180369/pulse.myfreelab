@@ -134,8 +134,43 @@ services:
       driver: json-file
       options: { max-size: "5m", max-file: "2" }
 
+  repetitor:
+    build:
+      context: ..
+      args: { CASE: 05_repetitor }
+    container_name: tracker-repetitor
+    restart: unless-stopped
+    environment:
+      DEMO: "1"
+      PORT: "8805"
+      DB_FILE: /data/zachet.sqlite
+      TRUST_PROXY: "1"
+      COOKIE_SECURE: "1"
+      APP_TZ: Europe/Moscow
+      PUSH_SUBJECT: https://zachet.myfreelab.ru
+    ports:
+      - "127.0.0.1:8805:8805"
+    volumes:
+      - repetitor-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8805/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+
 volumes:
   zadachi-data:
   privychki-data:
   stroyka-data:
   zdorovie-data:
+  repetitor-data:

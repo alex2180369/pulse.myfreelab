@@ -68,3 +68,29 @@ test('Тонус: сброс возвращает демо и удаляет ф�
   assert.ok(db.prepare("SELECT 1 FROM measurements WHERE day = '2026-11-10'").get(), 'даты пересчитаны от нового дня');
   assert.equal(db.prepare("SELECT login FROM users WHERE role = 'client' ORDER BY id LIMIT 1").get().login, 'anna', 'демо-вход ведёт к Анне');
 });
+
+test('Зачёт: сброс возвращает демо и удаляет файлы посетителей', async () => {
+  const { seed, resetDemo } = require('../cases/05_repetitor/app/seed');
+  const schema = require('../cases/05_repetitor/app/schema');
+  const db = openDb(':memory:', schema);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zachet-reset-'));
+  await seed(db, '2026-11-10');
+  const tables = ['users', 'students', 'parent_links', 'page', 'files', 'materials', 'assignments', 'questions', 'assignment_students', 'submissions', 'lessons', 'notifications'];
+  const counts = d => tables.map(t => d.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n);
+  assert.ok(counts(db).every(n => n > 0), 'демо не пустое');
+  db.prepare("INSERT INTO leads (name, contact, consent_at, created_at) VALUES ('Посетитель', '+7', 'x', 'x')").run();
+  db.prepare("INSERT INTO files (kind, file, name, type, size, created_at) VALUES ('answer', 'upload', 'x', 'image/png', 1, 'x')").run();
+  fs.writeFileSync(path.join(dir, 'upload'), 'x');
+  await resetDemo(db, '2026-11-11', dir);
+  const fresh = openDb(':memory:', schema);
+  await seed(fresh, '2026-11-11');
+  assert.deepEqual(counts(db), counts(fresh));
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM leads').get().n, 0, 'заявки посетителей удалены');
+  assert.equal(fs.existsSync(dir), false, 'загруженные файлы удалены');
+  const seedFiles = new Set(fs.readdirSync(path.join(__dirname, '../cases/05_repetitor/app/seed_files')));
+  for (const { file } of db.prepare('SELECT file FROM files').all()) assert.ok(seedFiles.has(file), `файл демо есть: ${file}`);
+  assert.equal(db.prepare("SELECT login FROM users WHERE role = 'student' ORDER BY id LIMIT 1").get().login, 'danya', 'демо-вход ученика ведёт к Дане');
+  assert.equal(db.prepare("SELECT login FROM users WHERE role = 'parent' ORDER BY id LIMIT 1").get().login, 'smirnova', 'родитель — мама Дани');
+  assert.ok(db.prepare("SELECT 1 FROM submissions WHERE status = 'submitted'").get(), 'у репетитора есть работы на проверку');
+  assert.ok(db.prepare("SELECT 1 FROM lessons WHERE moved_from IS NOT NULL").get(), 'есть перенесённое занятие');
+});
