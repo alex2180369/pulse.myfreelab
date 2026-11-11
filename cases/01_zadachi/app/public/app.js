@@ -584,7 +584,10 @@ function telegramControls(status) {
     ];
   }
   if (state.demo) {
-    return h('a', { class: 'btn', href: `https://t.me/${bot}`, target: '_blank', rel: 'noopener' }, `Открыть @${bot} и выбрать роль`);
+    return [
+      h('p', { class: 'muted small' }, `Бот @${bot}: выберите в нём роль, и он пришлёт задачи и напоминания.`),
+      h('a', { class: 'btn', href: `https://t.me/${bot}`, target: '_blank', rel: 'noopener', id: 'tg-open' }, 'Открыть бота в Telegram'),
+    ];
   }
   return h('button', {
     class: 'btn', type: 'button', id: 'tg-link',

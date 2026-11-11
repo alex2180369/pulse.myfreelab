@@ -118,7 +118,10 @@
 select.compact { width: auto; min-height: 30px; padding: 2px 8px; font-size: 13px; }
 
 .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
-.panel { padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.panel { padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+/* В узкой карточке длинная подпись переносится, а не обрезается. */
+.panel .btn { white-space: normal; text-align: center; line-height: 1.25; }
+.panel p { overflow-wrap: anywhere; }
 
 .auth { display: grid; place-items: center; min-height: 100dvh; padding: 16px; }
 .auth-card { display: grid; gap: 16px; width: min(400px, 100%); padding: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
